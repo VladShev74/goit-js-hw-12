@@ -46,13 +46,23 @@ function smoothScroll() {
 
 const handleFormSubmit = async event => {
   event.preventDefault();
+
+  query = form.elements["search-text"].value.trim();
+
+  // Валідація введення
+  if (!query) {
+    iziToast.error({
+      message: "Please enter a search query!",
+      position: "topRight",
+    });
+    return;
+  }
+
   gallery.innerHTML = "";
   pageToLoad = 1;
   hideLoadMoreButton();
   clearGallery();
   showLoader();
-
-  query = form.elements["search-text"].value.trim();
 
   try {
     const data = await getImagesByQuery(query, pageToLoad);
@@ -92,22 +102,31 @@ const handleLoadMoreClick = async event => {
 
     const images = data.hits;
 
-    if (!images || images.length === 0 || pageToLoad >= totalPages) {
+    if (!images || images.length === 0) {
       throw new Error("No images found");
     }
 
     createGallery(images);
     await waitForImagesToLoad();
     smoothScroll();
-    hideLoader();
+
+    // Перевірка, чи це остання сторінка
+    if (pageToLoad >= totalPages) {
+      hideLoadMoreButton();
+      iziToast.info({
+        message: "We're sorry, but you've reached the end of search results.",
+        position: "topRight",
+      });
+    }
 
   } catch (error) {
-    hideLoader();
     iziToast.error({
-      message: "We're sorry, but you've reached the end of search results.",
+      message: "Sorry, there are no images matching your search query. Please try again!",
       position: "topRight",
     });
     hideLoadMoreButton();
+  } finally {
+    hideLoader();
   }
 }
 
